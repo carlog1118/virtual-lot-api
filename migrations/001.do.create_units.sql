@@ -9,4 +9,5 @@ CREATE TABLE units (
   color TEXT NOT NULL, 
   price INTEGER NOT NULL, 
   cost INTEGER NOT NULL,
+  status TEXT NOT NULL
 );

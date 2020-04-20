@@ -52,7 +52,7 @@ describe('Units Endpoints', function() {
         const unitId = 123456
         return supertest(app)
           .get(`/units/${unitId}`)
-          .expect(404, { error: { message: `Unit doesn't exist` } })
+          .expect(404, { error: { message: `Unit doesnt exist` } })
       });
     });
 
@@ -184,5 +184,39 @@ describe('Units Endpoints', function() {
             })
           })
       })
-  });  
+  });
+  
+  describe(`Delete /units/:unit_id`, () =>{
+    context('Given there are units in the database', () => {
+      const testUnits = makeUnitsArray();
+
+      beforeEach('insert units', () => {
+        return db
+          .into('units')
+          .insert(testUnits)
+       });
+      
+      it('responds with 204 and removes the unit', () => {
+        const idToRemove = 2;
+        const expectedUnit = testUnits.filter(unit => unit.id !== idToRemove)
+        return supertest(app)
+          .delete(`/units/${idToRemove}`)
+          .expect(204)
+          .then(res =>
+            supertest(app)
+              .get(`/units`)
+              .expect(expectedUnit)
+          )
+        });
+    });
+    
+    context(`Given no units`, () => {
+      it(`responds with 404`, () => {
+        const unitId = 123456;
+        return supertest(app)
+          .delete(`/units/${unitId}`)
+          .expect(404, { error: { message: `Unit doesnt exist` } })
+      });
+    });
+  });
 });

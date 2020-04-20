@@ -5,7 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('./config');
 const unitssRouter = require('./units/units-router');
-const winston = require('winston');
 const { CLIENT_ORIGIN } = require('./config'); 
 
 const app = express();

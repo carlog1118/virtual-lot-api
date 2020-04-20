@@ -117,31 +117,47 @@ unitsRouter
 
 unitsRouter
   .route('/:unit_id')
-  .get((req, res, next) => {
-      const knexInstance = req.app.get('db')
-      UnitsService.getById(knexInstance, req.params.unit_id)
-        .then(unit => {
-            if (!unit) {
-              return res.status(404).json({
-                  error: { message: `Unit doesn't exist`}
-              })
-            }
-            res.json({
-              id: unit.id,
-              year: unit.year,
-              make: xss(unit.make),
-              model: xss(unit.model),
-              trim: xss(unit.trim),
-              vin: xss(unit.vin),
-              mileage: unit.mileage,
-              color: xss(unit.color),
-              price: unit.price,
-              cost: unit.cost,
-              status: xss(unit.status)    
+  .all((req, res, next) => {
+    UnitsService.getById(
+      req.app.get('db'),
+      req.params.unit_id
+    )
+      .then(unit => {
+        if (!unit) {
+            return res.status(404).json({
+                error: { message: `Unit doesnt exist` }
             })
+        }
+        res.unit = unit
+        next()
+      })
+      .catch(next)
+  })
+  .get((req, res, next) => {
+    res.json({
+          id: res.unit.id,
+          year: res.unit.year,
+          make: xss(res.unit.make),
+          model: xss(res.unit.model),
+          trim: xss(res.unit.trim),
+          vin: xss(res.unit.vin),
+          mileage: res.unit.mileage,
+          color: xss(res.unit.color),
+          price: res.unit.price,
+          cost: res.unit.cost,
+           status: xss(res.unit.status)    
         })
-        .catch(next)
-  });
+  })
+  .delete((req, res, next) => {
+    UnitsService.deleteUnit(
+      req.app.get('db'),
+      req.params.unit_id
+    )
+      .then(() => {
+          res.status(204).end()
+      })
+      .catch(next)
+  })
 
 module.exports = unitsRouter;
 

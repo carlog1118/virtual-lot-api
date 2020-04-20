@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const xss = require('xss');
 const UnitsService = require('./units-service');
 
@@ -109,7 +110,7 @@ unitsRouter
       .then(unit => {
         res
           .status(201)
-          .location(`/units/${unit.id}`)
+          .location(path.posix.join(req.originalUrl + `/${unit.id}`))
           .json(unit)
       })
       .catch(next)
@@ -155,6 +156,51 @@ unitsRouter
     )
       .then(() => {
           res.status(204).end()
+      })
+      .catch(next)
+  })
+  .patch(jsonParser, (req, res, next) => {
+    const { 
+      year,
+      make,
+      model,
+      trim,
+      vin,
+      mileage,
+      color,
+      price,
+      cost,
+      status
+    } = req.body;
+    const unitToUpdate = {
+        year,
+        make,
+        model,
+        trim,
+        vin,
+        mileage,
+        color,
+        price,
+        cost,
+        status
+    };
+
+    const numberOfValues = Object.values(unitToUpdate).filter(Boolean).length;
+    if(numberOfValues === 0) {
+        return res.status(400).json({
+            error: {
+                message: `request body must contain at least one of the fields.`
+            }
+        });
+    ;}
+
+    UnitsService.updateUnit(
+      req.app.get('db'),
+      req.params.unit_id,
+      unitToUpdate
+    )
+      .then(numRowsAffected => {
+        res.status(204).end()
       })
       .catch(next)
   })

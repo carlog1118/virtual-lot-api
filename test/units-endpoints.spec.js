@@ -20,11 +20,11 @@ describe('Units Endpoints', function() {
   
   afterEach('cleanup', () => db('units').truncate());
   
-  describe(`GET /units`, () => {
+  describe(`GET /api/units`, () => {
     context(`Given no units`, () => {
       it(`responds with 200 and an empty list`, () => {
         return supertest(app)
-          .get('/units')
+          .get('/api/units')
           .expect(200, [])
       });
     });
@@ -40,18 +40,18 @@ describe('Units Endpoints', function() {
 
       it('responds with 200 and all of the articles', () => {
         return supertest(app)
-          .get('/units')
+          .get('/api/units')
           .expect(200, testUnits)
       });
     });
   });
 
-  describe(`GET /units/:unit_id`, () => {
+  describe(`GET /api/units/:unit_id`, () => {
     context(`Given no units`, () => {
       it(`responds with 404`, () => {
         const unitId = 123456
         return supertest(app)
-          .get(`/units/${unitId}`)
+          .get(`/api/units/${unitId}`)
           .expect(404, { error: { message: `Unit doesnt exist` } })
       });
     });
@@ -69,7 +69,7 @@ describe('Units Endpoints', function() {
         const unitId = 2
         const expectedUnit = testUnits[unitId - 1]
         return supertest(app)
-          .get(`/units/${unitId}`)
+          .get(`/api/units/${unitId}`)
           .expect(200, expectedUnit)
       });
     });
@@ -97,7 +97,7 @@ describe('Units Endpoints', function() {
       
       it('removes XSS attack content', () => {
         return supertest(app)
-          .get(`/units/${maliciousUnit.id}`)
+          .get(`/api/units/${maliciousUnit.id}`)
           .expect(200)
           .expect(res => {
             expect(res.body.make).to.eql('Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;')
@@ -107,7 +107,7 @@ describe('Units Endpoints', function() {
     })
   });
 
-  describe(`POST /units`, () => {
+  describe(`POST /api/units`, () => {
     it(`creates a unit, responding with 201 and the new unit`, () => {
       const newUnit = {
         year: 2018,
@@ -122,7 +122,7 @@ describe('Units Endpoints', function() {
         status: 'Available'
       };  
       return supertest(app)
-        .post('/units')
+        .post('/api/units')
         .send(newUnit)
         .expect(201)
         .expect(res => {
@@ -137,11 +137,11 @@ describe('Units Endpoints', function() {
           expect(res.body.cost).to.eql(newUnit.cost)
           expect(res.body.status).to.eql(newUnit.status)
           expect(res.body).to.have.property('id')
-          expect(res.headers.location).to.eql(`/units/${res.body.id}`)          
+          expect(res.headers.location).to.eql(`/api/units/${res.body.id}`)          
         })
         .then(res =>
           supertest(app)
-            .get(`/units/${res.body.id}`)
+            .get(`/api/units/${res.body.id}`)
             .expect(res.body)
         )    
     });
@@ -177,7 +177,7 @@ describe('Units Endpoints', function() {
         delete newUnit[field]
     
         return supertest(app)
-          .post('/units')
+          .post('/api/units')
           .send(newUnit)
           .expect(400, {
             error: { message: `Missing '${field}' in request body` }
@@ -186,7 +186,7 @@ describe('Units Endpoints', function() {
       })
   });
   
-  describe(`Delete /units/:unit_id`, () =>{
+  describe(`Delete /api/units/:unit_id`, () =>{
     context('Given there are units in the database', () => {
       const testUnits = makeUnitsArray();
 
@@ -200,11 +200,11 @@ describe('Units Endpoints', function() {
         const idToRemove = 2;
         const expectedUnit = testUnits.filter(unit => unit.id !== idToRemove)
         return supertest(app)
-          .delete(`/units/${idToRemove}`)
+          .delete(`/api/units/${idToRemove}`)
           .expect(204)
           .then(res =>
             supertest(app)
-              .get(`/units`)
+              .get(`/api/units`)
               .expect(expectedUnit)
           )
         });
@@ -214,8 +214,94 @@ describe('Units Endpoints', function() {
       it(`responds with 404`, () => {
         const unitId = 123456;
         return supertest(app)
-          .delete(`/units/${unitId}`)
+          .delete(`/api/units/${unitId}`)
           .expect(404, { error: { message: `Unit doesnt exist` } })
+      });
+    });
+  });
+
+  describe.only(`Patch /api/units/:unit_id`, () => {
+    context(`Given no articles`, () => {
+      it(`responds with 404`, () => {
+        const unitId = 123456
+        return supertest(app)
+          .patch(`/api/units/${unitId}`)
+          .expect(404, { error: { message: `Unit doesnt exist` }})
+      });
+    });
+
+    context('Given there are units in the database', () => {
+      const testUnits= makeUnitsArray();
+
+      beforeEach('insert units', () => {
+        return db
+          .into('units')
+          .insert(testUnits)
+      });
+      
+      it('responds with 204 and updates the unit', () => {
+        const idToUpdate = 2
+        const updateUnit = {
+          year: 2010,
+          make: 'Hummer',
+          model: 'H3',
+          trim: 'H3',
+          vin: '123456789abc987',
+          mileage: 100000,
+          color: 'Yellow',
+          price: 10000,
+          cost: 5000,
+          status: 'Sold'
+        }
+        const expectedUnit = {
+          ...testUnits[idToUpdate - 1],
+          ...updateUnit
+        }
+        return supertest(app)
+          .patch(`/api/units/${idToUpdate}`)
+          .send(updateUnit)
+          .expect(204)
+          .then(res => 
+            supertest(app)
+              .get(`/api/units/${idToUpdate}`)
+              .expect(expectedUnit)
+          )
+      });
+
+      it(`responds with 400 when no required fields supplied`, () => {
+        const idToUpdate = 2;
+        return supertest(app)
+          .patch(`/api/units/${idToUpdate}`)
+          .send({ irrelevantField: 'foo' })
+          .expect(400, {
+            error: {
+              message: `request body must contain at least one of the fields.`
+            }
+          })
+      });
+
+      it(`responds with 204 awhen updating only a subset of fields`, () => {
+        const idToUpdate = 2;
+        const updateUnit = {
+          year: 1999.
+        }
+        const expectedUnit = {
+          ...testUnits[idToUpdate-1],
+          ...updateUnit
+        }
+
+        return supertest(app)
+          .patch(`/api/units/${idToUpdate}`)
+          .send({
+            ...updateUnit,
+            fieldToIgnore: 'should not be in GET response'
+          })
+          .expect(204)
+          .then(res => 
+            supertest(app)
+              .get(`/api/units/${idToUpdate}`)
+              .expect(expectedUnit)
+          )
       });
     });
   });

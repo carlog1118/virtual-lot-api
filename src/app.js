@@ -22,7 +22,7 @@ app.use(
   })
 );
 
-app.use('/units', unitssRouter);
+app.use('/api/units', unitssRouter);
 
 app.get('/', (req, res) => {
     res.json({ok: true});

@@ -73,21 +73,53 @@ describe('Units Endpoints', function() {
           .expect(200, expectedUnit)
       });
     });
+
+    context(`Given an XSS attack unit`, () => {
+      const maliciousUnit = {
+        id: 911,
+        year: 2018,
+        make: 'Naughty naughty very naughty <script>alert("xss");</script>',
+        model: 'Higlander',
+        trim: 'XLE',
+        vin: `Bad image <img src="https://url.to.file.which/does-not.exist" onerror="alert(document.cookie);">. But not <strong>all</strong> bad.`,
+        mileage: 50000,
+        color: 'Green',
+        price: 40000,
+        cost: 35000,
+        status: 'Available'
+      }
+      
+      beforeEach('insert malicious unit', () => {
+        return db
+          .into('units')
+          .insert([ maliciousUnit ])
+      })
+      
+      it('removes XSS attack content', () => {
+        return supertest(app)
+          .get(`/units/${maliciousUnit.id}`)
+          .expect(200)
+          .expect(res => {
+            expect(res.body.make).to.eql('Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;')
+            expect(res.body.vin).to.eql(`Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.`)
+          })
+      })
+    })
   });
 
-  describe.only(`POST /units`, () => {
+  describe(`POST /units`, () => {
     it(`creates a unit, responding with 201 and the new unit`, () => {
       const newUnit = {
         year: 2018,
-        make: "Toyota",
-        model: "Higlander",
-        trim: "XLE",
-        vin: "123456789abcdefg124",
+        make: 'Toyota',
+        model: 'Higlander',
+        trim: 'XLE',
+        vin: '123456789abcdefg124',
         mileage: 50000,
-        color: "Green",
+        color: 'Green',
         price: 40000,
         cost: 35000,
-        status: "Available"
+        status: 'Available'
       };  
       return supertest(app)
         .post('/units')
@@ -113,5 +145,44 @@ describe('Units Endpoints', function() {
             .expect(res.body)
         )    
     });
-  });
+
+    const requiredFields = [
+      'year',
+      'make',
+      'model',
+      'trim',
+      'vin',
+      'mileage',
+      'color',
+      'price',
+      'cost',
+      'status'
+    ];
+
+    requiredFields.forEach(field => {
+      const newUnit = {
+        year: '2018',
+        make: "Toyota",
+        model: "Higlander",
+        trim: "XLE",
+        vin: "123456789abcdefg124",
+        mileage: '50000',
+        color: "Green",
+        price: '40000',
+        cost: '35000',
+        status: "Available"
+      }
+    
+      it(`responds with 400 and an error message when the '${field}' is missing`, () => {
+        delete newUnit[field]
+    
+        return supertest(app)
+          .post('/units')
+          .send(newUnit)
+          .expect(400, {
+            error: { message: `Missing '${field}' in request body` }
+            })
+          })
+      })
+  });  
 });

@@ -1,4 +1,5 @@
 const express = require('express');
+const xss = require('xss');
 const UnitsService = require('./units-service');
 
 const unitsRouter = express.Router();
@@ -27,6 +28,7 @@ unitsRouter
       cost,
       status
     } = req.body;
+    
     const newUnit = {
       year,
       make,
@@ -39,6 +41,67 @@ unitsRouter
       cost,
       status
     };
+
+    if (!year) {
+      return res.status(400).json({
+        error: { message: `Missing 'year' in request body`}
+      })
+    }
+
+    if (!make) {
+      return res.status(400).json({
+        error: { message: `Missing 'make' in request body`}
+      })
+    }
+
+    if (!model) {
+      return res.status(400).json({
+        error: { message: `Missing 'model' in request body`}
+      })
+    }
+
+    if (!trim) {
+      return res.status(400).json({
+        error: { message: `Missing 'trim' in request body`}
+      })
+    }
+
+    if (!vin) {
+      return res.status(400).json({
+        error: { message: `Missing 'vin' in request body`}
+      })
+    }
+
+    if (!mileage) {
+      return res.status(400).json({
+        error: { message: `Missing 'mileage' in request body`}
+      })
+    }
+
+    if (!color) {
+      return res.status(400).json({
+        error: { message: `Missing 'color' in request body`}
+      })
+    }
+
+    if (!price) {
+      return res.status(400).json({
+        error: { message: `Missing 'price' in request body`}
+      })
+    }
+
+    if (!cost) {
+      return res.status(400).json({
+        error: { message: `Missing 'cost' in request body`}
+      })
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        error: { message: `Missing 'status' in request body`}
+      })
+    }
+
     UnitsService.insertUnit(
       req.app.get('db'),
       newUnit
@@ -60,10 +123,22 @@ unitsRouter
         .then(unit => {
             if (!unit) {
               return res.status(404).json({
-                  error: { message: `Unit doesn't exist `}
+                  error: { message: `Unit doesn't exist`}
               })
             }
-            res.json(unit)
+            res.json({
+              id: unit.id,
+              year: unit.year,
+              make: xss(unit.make),
+              model: xss(unit.model),
+              trim: xss(unit.trim),
+              vin: xss(unit.vin),
+              mileage: unit.mileage,
+              color: xss(unit.color),
+              price: unit.price,
+              cost: unit.cost,
+              status: xss(unit.status)    
+            })
         })
         .catch(next)
   });

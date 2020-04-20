@@ -1,36 +1,10 @@
-const UnitsService = require('../src/units-service');
+const UnitsService = require('../src/units/units-service');
 const knex = require('knex');
+const { makeUnitsArray } = require('./units.fixtures');
 
 describe(`Units service object`, function() {
   let db;
-  let testUnits= [
-    {
-      id: 1,
-      year: 2015,
-      make: "Honda",
-      model: "Civic",
-      trim: "EX Coupe",
-      vin: "123456789abcdefg123",
-      mileage: 75000,
-      color: "Red",
-      price: 10000,
-      cost: 7000,
-      status: "Available"
-    },
-    {
-      id: 2,
-      year: 2017,
-      make: "Toyota",
-      model: "Avalon",
-      trim: "XLE",
-      vin: "123456789abcdefg124",
-      mileage: 50000,
-      color: "Blue",
-      price: 20000,
-      cost: 16000,
-      status: "Available"
-    }
-  ];
+  let testUnits= makeUnitsArray();
 
   before(() => {
     db = knex({

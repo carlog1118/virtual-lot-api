@@ -10,10 +10,19 @@ unitsRouter
   .route('/')
   .get((req, res, next) => {
       const knexInstance = req.app.get('db')
-      UnitsService.getAllUnits(knexInstance)
-      .then(units => {
-          res.json(units)
-      })
+      const make = req.query.make;
+      const model = req.query.model;
+
+      //const  model  = req.query.model.toLowerCase()
+
+  
+      
+  UnitsService.getAllUnits(knexInstance, make, model)
+     .then(units =>{
+       res.json(units)
+     })
+
+
       .catch(next)
   })
   .post(jsonParser, (req, res, next) => {
@@ -207,3 +216,8 @@ unitsRouter
 
 module.exports = unitsRouter;
 
+/*if (req.query.name) {
+  response = response.filter(pokemon =>
+    // case insensitive searching
+    pokemon.name.toLowerCase().includes(req.query.name.toLowerCase())
+  )*/

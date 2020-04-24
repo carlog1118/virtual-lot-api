@@ -1,6 +1,17 @@
 const UnitsService = {
-  getAllUnits(knex) {
-    return knex.select('*').from('units')
+  getAllUnits(knex, make, model) {
+    console.log(make)
+    console.log(model)
+
+    if (make && !model) {
+      return knex.from('units').select('*').where('make', 'ILIKE', `%${make}%`)
+    } else if(model && !make) {
+      return knex.from('units').select('*').where('model', 'ILIKE', `%${model}%`)
+    } else if(make || model){
+      return knex.from('units').select('*').where('make', 'ILIKE', `%${make}%`).orWhere('model', 'ILIKE', `%${model}%`)
+    } else {
+      return knex.from('units').select('*')
+    }
   },
   insertUnit(knex, newUnit){
     return knex

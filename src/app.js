@@ -4,7 +4,8 @@ const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('./config');
-const unitssRouter = require('./units/units-router');
+const unitsRouter = require('./units/units-router');
+const authRouter = require('./auth/auth-router');
 const { CLIENT_ORIGIN } = require('./config'); 
 
 const app = express();
@@ -22,7 +23,8 @@ app.use(
   })
 );
 
-app.use('/api/units', unitssRouter);
+app.use('/api/units', unitsRouter);
+app.use('/api/auth', authRouter);
 
 app.get('/', (req, res) => {
     res.json({ok: true});

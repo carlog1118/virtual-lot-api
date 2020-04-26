@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const xss = require('xss');
+const { requireAuth } = require ('../Middleware/jwt-auth');
 const UnitsService = require('./units-service');
 
 const unitsRouter = express.Router();
@@ -8,15 +9,12 @@ const jsonParser = express.json();
 
 unitsRouter
   .route('/')
+  .all(requireAuth)
   .get((req, res, next) => {
       const knexInstance = req.app.get('db')
       const make = req.query.make;
       const model = req.query.model;
-
-      //const  model  = req.query.model.toLowerCase()
-
-  
-      
+        
   UnitsService.getAllUnits(knexInstance, make, model)
      .then(units =>{
        res.json(units)
@@ -127,7 +125,7 @@ unitsRouter
 
 unitsRouter
   .route('/:unit_id')
-  .all((req, res, next) => {
+  .all(requireAuth, (req, res, next) => {
     UnitsService.getById(
       req.app.get('db'),
       req.params.unit_id

@@ -1,8 +1,5 @@
 const UnitsService = {
   getAllUnits(knex, make, model) {
-    console.log(make)
-    console.log(model)
-
     if (make && !model) {
       return knex.from('units').select('*').where('make', 'ILIKE', `%${make}%`)
     } else if(model && !make) {
@@ -38,3 +35,10 @@ const UnitsService = {
 };
 
 module.exports = UnitsService
+
+/*makeBasicAuthToken(userName, password) {
+  return window.btoa(`${userName}:${password}`)
+},
+saveAuthToken(token) {
+  window.localStorage.setItem(config.TOKEN_KEY, token)
+},*/

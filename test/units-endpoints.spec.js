@@ -1,10 +1,20 @@
 const { expect } = require('chai');
 const knex = require('knex');
 const app = require ('../src/app');
+const jwt = require('jsonwebtoken');
+const { makeUsersArray } = require('./users.fixtures');
 const { makeUnitsArray } = require('./units.fixtures');
 
 describe('Units Endpoints', function() {
   let db
+
+  function makeAuthHeader(user, secret = process.env.JWT_SECRET) {
+    const token = jwt.sign({ user_id: user.id }, secret, {
+      subject: user.user_name,
+      algorithm: 'HS256',
+    })
+    return `Bearer ${token}`
+  }
     
   before('make knex instance', () => {
     db = knex({
@@ -16,15 +26,46 @@ describe('Units Endpoints', function() {
 
   after('disconnect from db', () => db.destroy());
 
-  before('clean the table', () => db('units').truncate());
+  before('clean the units table', () => db('units').truncate());
+
+  before('clean the users table', () => db('users').truncate());
   
-  afterEach('cleanup', () => db('units').truncate());
+  afterEach('cleanup units', () => db('units').truncate());
+
+  afterEach('cleanup users', () => db('users').truncate());
   
+  describe(`Protected endpoints`, () => {
+    const testUnits = makeUnitsArray();
+    beforeEach('insert units', () => {
+      return db
+        .into('units')
+        .insert(testUnits)
+    });
+
+    describe(`GET /api/units/:unit_id`, () => {
+      it(`responds with 401 'Missing bearer token' when no bearer token`, () => {
+         return supertest(app)
+          .get(`/api/units/123`)
+          .expect(401, { error: `Missing bearer token` })
+      })
+    })
+  });
+
   describe(`GET /api/units`, () => {
+    testUsers = makeUsersArray();
+      
+    beforeEach('insert units', () => {
+      return db
+        .into('users')
+       .insert(testUsers)
+    });
+
     context(`Given no units`, () => {
+          
       it(`responds with 200 and an empty list`, () => {
         return supertest(app)
           .get('/api/units')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, [])
       });
     });
@@ -41,17 +82,27 @@ describe('Units Endpoints', function() {
       it('responds with 200 and all of the articles', () => {
         return supertest(app)
           .get('/api/units')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, testUnits)
       });
     });
   });
 
   describe(`GET /api/units/:unit_id`, () => {
+    testUsers = makeUsersArray();
+      
+    beforeEach('insert units', () => {
+      return db
+        .into('users')
+       .insert(testUsers)
+    });
+
     context(`Given no units`, () => {
       it(`responds with 404`, () => {
         const unitId = 123456
         return supertest(app)
           .get(`/api/units/${unitId}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(404, { error: { message: `Unit doesnt exist` } })
       });
     });
@@ -70,6 +121,7 @@ describe('Units Endpoints', function() {
         const expectedUnit = testUnits[unitId - 1]
         return supertest(app)
           .get(`/api/units/${unitId}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, expectedUnit)
       });
     });
@@ -98,6 +150,7 @@ describe('Units Endpoints', function() {
       it('removes XSS attack content', () => {
         return supertest(app)
           .get(`/api/units/${maliciousUnit.id}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200)
           .expect(res => {
             expect(res.body.make).to.eql('Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;')
@@ -108,6 +161,14 @@ describe('Units Endpoints', function() {
   });
 
   describe(`POST /api/units`, () => {
+    testUsers = makeUsersArray();
+      
+    beforeEach('insert units', () => {
+      return db
+        .into('users')
+       .insert(testUsers)
+    });
+    
     it(`creates a unit, responding with 201 and the new unit`, () => {
       const newUnit = {
         year: 2018,
@@ -123,6 +184,7 @@ describe('Units Endpoints', function() {
       };  
       return supertest(app)
         .post('/api/units')
+        .set('Authorization', makeAuthHeader(testUsers[0]))
         .send(newUnit)
         .expect(201)
         .expect(res => {
@@ -142,6 +204,7 @@ describe('Units Endpoints', function() {
         .then(res =>
           supertest(app)
             .get(`/api/units/${res.body.id}`)
+            .set('Authorization', makeAuthHeader(testUsers[0]))
             .expect(res.body)
         )    
     });
@@ -178,6 +241,7 @@ describe('Units Endpoints', function() {
     
         return supertest(app)
           .post('/api/units')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .send(newUnit)
           .expect(400, {
             error: { message: `Missing '${field}' in request body` }
@@ -187,6 +251,14 @@ describe('Units Endpoints', function() {
   });
   
   describe(`Delete /api/units/:unit_id`, () =>{
+    const testUsers = makeUsersArray();
+    
+    beforeEach('insert users', () => {
+      return db
+        .into('users')
+        .insert(testUsers)
+    });
+
     context('Given there are units in the database', () => {
       const testUnits = makeUnitsArray();
 
@@ -197,14 +269,16 @@ describe('Units Endpoints', function() {
        });
       
       it('responds with 204 and removes the unit', () => {
-        const idToRemove = 2;
+        const idToRemove = 1;
         const expectedUnit = testUnits.filter(unit => unit.id !== idToRemove)
         return supertest(app)
           .delete(`/api/units/${idToRemove}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(204)
           .then(res =>
             supertest(app)
               .get(`/api/units`)
+              .set('Authorization', makeAuthHeader(testUsers[0]))
               .expect(expectedUnit)
           )
         });
@@ -215,17 +289,27 @@ describe('Units Endpoints', function() {
         const unitId = 123456;
         return supertest(app)
           .delete(`/api/units/${unitId}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(404, { error: { message: `Unit doesnt exist` } })
       });
     });
   });
 
-  describe.only(`Patch /api/units/:unit_id`, () => {
+  describe(`Patch /api/units/:unit_id`, () => {
+    const testUsers= makeUsersArray();
+
+    beforeEach('insert users', () => {
+      return db
+        .into('users')
+        .insert(testUsers)
+    });
+    
     context(`Given no articles`, () => {
       it(`responds with 404`, () => {
         const unitId = 123456
         return supertest(app)
           .patch(`/api/units/${unitId}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(404, { error: { message: `Unit doesnt exist` }})
       });
     });
@@ -259,11 +343,13 @@ describe('Units Endpoints', function() {
         }
         return supertest(app)
           .patch(`/api/units/${idToUpdate}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .send(updateUnit)
           .expect(204)
           .then(res => 
             supertest(app)
               .get(`/api/units/${idToUpdate}`)
+              .set('Authorization', makeAuthHeader(testUsers[0]))
               .expect(expectedUnit)
           )
       });
@@ -272,6 +358,7 @@ describe('Units Endpoints', function() {
         const idToUpdate = 2;
         return supertest(app)
           .patch(`/api/units/${idToUpdate}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .send({ irrelevantField: 'foo' })
           .expect(400, {
             error: {
@@ -292,6 +379,7 @@ describe('Units Endpoints', function() {
 
         return supertest(app)
           .patch(`/api/units/${idToUpdate}`)
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .send({
             ...updateUnit,
             fieldToIgnore: 'should not be in GET response'
@@ -300,6 +388,7 @@ describe('Units Endpoints', function() {
           .then(res => 
             supertest(app)
               .get(`/api/units/${idToUpdate}`)
+              .set('Authorization', makeAuthHeader(testUsers[0]))
               .expect(expectedUnit)
           )
       });

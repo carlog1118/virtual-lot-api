@@ -2,5 +2,6 @@ module.exports = {
     PORT: process.env.PORT || 8000,
     NODE_ENV: process.env.NODE_ENV || 'development',
     DB_URL: process.env.DB_URL || 'postgresql://virtual_lot@localhost/virtual-lot',
-    CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || '*'
+    CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || '*',
+    JWT_SECRET: process.env.JWT_SECRET || 'change-this-secret',
 }

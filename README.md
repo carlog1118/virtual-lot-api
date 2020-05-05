@@ -1,16 +1,19 @@
-# Virtual Lot APi
+# Virtual Lot API
 
-This is a boilerplate project used for starting new projects!
+[Vist The Live Client](https://virtual-lot.now.sh)
 
-## Set up
+## Summary
+The Vitual Lot API is an Express server for use with the
+virtual Lot client. It uses knex to pull vehicle and user
+information from a PostgreSQL database in response to a 
+Fetch request. 
 
-1. Clone this repository to your local machine `git clone VIRTUAL-LOT-API-URL VIRTUAL-LOT-API`
-2. `cd` into the cloned repository
-3. Install the node dependencies `npm install`
+## Technology Used
 
-## Scripts
+* Node.js
+* Express
+* Mocha & Chai
 
-Start the application `npm start`
 
-Start nodemon for the application `npm run dev`
+
 

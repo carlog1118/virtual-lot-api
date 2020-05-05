@@ -213,9 +213,3 @@ unitsRouter
   })
 
 module.exports = unitsRouter;
-
-/*if (req.query.name) {
-  response = response.filter(pokemon =>
-    // case insensitive searching
-    pokemon.name.toLowerCase().includes(req.query.name.toLowerCase())
-  )*/
